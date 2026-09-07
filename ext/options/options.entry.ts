@@ -1,4 +1,8 @@
-import { prefStore } from '../lib/preferences/preferences'
+import {
+  MAX_FONT_SIZE,
+  MIN_FONT_SIZE,
+  prefStore,
+} from '../lib/preferences/preferences'
 
 const radioButtons = [
   ...document.querySelectorAll('input[name="theme"]'),
@@ -10,8 +14,25 @@ const getRadioButton = (value: string): HTMLInputElement => {
   return el
 }
 
+const fontSizeInput = document.querySelector<HTMLInputElement>('#fontSize')
+const fontSizeValue =
+  document.querySelector<HTMLOutputElement>('#fontSizeValue')
+
+if (!fontSizeInput || !fontSizeValue)
+  throw new Error('Could not find font size controls.')
+
+fontSizeInput.min = String(MIN_FONT_SIZE)
+fontSizeInput.max = String(MAX_FONT_SIZE)
+fontSizeInput.step = '1'
+
+const updateFontSizeUi = (fontSize: number) => {
+  fontSizeInput.value = String(fontSize)
+  fontSizeValue.value = `${fontSize} px`
+}
+
 prefStore.get().then((prefs) => {
   getRadioButton((prefs.themeOverride as string) || 'system').checked = true
+  updateFontSizeUi(prefs.fontSize)
 })
 
 // update storage when UI changes
@@ -32,6 +53,14 @@ prefStore.get().then((prefs) => {
       }
     })
   })
+
+  fontSizeInput.addEventListener('input', () => {
+    fontSizeValue.value = `${fontSizeInput.value} px`
+  })
+
+  fontSizeInput.addEventListener('change', () => {
+    prefStore.set({ fontSize: Number(fontSizeInput.value) })
+  })
 }
 
 // update UI when storage changes
@@ -40,4 +69,5 @@ prefStore.onChange(({ newValue }) => {
     const radioButton = getRadioButton(newValue.themeOverride)
     radioButton.checked = true
   }
+  if (newValue?.fontSize) updateFontSizeUi(newValue.fontSize)
 })

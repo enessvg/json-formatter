@@ -7,7 +7,7 @@ import { logGlobal, logLocal } from '../lib/logging/logging'
 import { whenDomLoaded } from './lib/whenDomLoaded'
 import { sendMessage } from '../lib/messaging/messaging'
 import type { MessageProtocol } from '../lib/messaging/protocol'
-import { prefStore } from '../lib/preferences/preferences'
+import { DEFAULT_FONT_SIZE, prefStore } from '../lib/preferences/preferences'
 // @ts-expect-error
 import css from './style.css' with { type: 'text' }
 // @ts-expect-error
@@ -29,6 +29,11 @@ const cssPromise = new Promise<string>(async (resolve) => {
         return
       default:
     }
+
+    resolve(
+      `${css}\n\n@media (prefers-color-scheme: dark) {\n${darkThemeCss}\n}`,
+    )
+    return
   } catch (error) {
     logGlobal('ERROR', error)
   }
@@ -139,6 +144,18 @@ const renderPromise = (async (): Promise<
     rawJsonContainer.append(originalPreElement)
     document.body.appendChild(rawJsonContainer)
 
+    const applyFontSize = (fontSize: number) => {
+      const value = `${fontSize}px`
+      parsedJsonContainer.style.fontSize = value
+      rawJsonContainer.style.fontSize = value
+    }
+
+    try {
+      applyFontSize((await initialPrefsPromise).fontSize)
+    } catch {
+      applyFontSize(DEFAULT_FONT_SIZE)
+    }
+
     // Status: it is a valid JSON object or array, and we have parsed the whole thing.
     // Flesh out the UI and handle events
     {
@@ -148,6 +165,10 @@ const renderPromise = (async (): Promise<
       //jfStyleEl.innerText = 'body{padding:0;}' ;
       jfStyleEl.insertAdjacentHTML('beforeend', await cssPromise)
       document.head.appendChild(jfStyleEl)
+
+      prefStore.onChange(({ newValue }) => {
+        if (newValue) applyFontSize(newValue.fontSize)
+      })
 
       document.head.insertAdjacentHTML(
         'afterbegin',

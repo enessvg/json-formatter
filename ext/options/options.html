@@ -2,34 +2,48 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Options - JSON Formatter</title>
+    <title>Options - JSON Formatter - Enes</title>
     <link rel="stylesheet" href="options.css" />
   </head>
 
   <body
     class="flex flex-col gap-8 bg-white dark:bg-gray-900 dark:text-white p-8 text-3xl"
   >
-    <fieldset className="">
+    <fieldset>
       <legend class="font-bold mb-2">Theme</legend>
 
-      <div className="mb-4">
-        <label className="flex gap-2">
+      <div class="mb-4">
+        <label class="flex gap-2">
           <input type="radio" name="theme" value="system" />
           Automatic (follow OS setting)
         </label>
       </div>
-      <div className="mb-4">
-        <label className="flex gap-2">
+      <div class="mb-4">
+        <label class="flex gap-2">
           <input type="radio" name="theme" value="force_dark" />
           Force dark theme
         </label>
       </div>
-      <div className="mb-4">
-        <label className="flex gap-2">
+      <div class="mb-4">
+        <label class="flex gap-2">
           <input type="radio" name="theme" value="force_light" />
           Force light theme
         </label>
       </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="font-bold mb-2">JSON font size</legend>
+
+      <label class="flex items-center gap-4" for="fontSize">
+        <input class="w-64" id="fontSize" type="range" />
+        <output class="font-mono min-w-20" id="fontSizeValue" for="fontSize"
+          >13 px</output
+        >
+      </label>
+      <p class="mt-2 text-base text-gray-600 dark:text-gray-400">
+        Applies to both Parsed and Raw JSON views.
+      </p>
     </fieldset>
 
     <script src="options.js" type="module"></script>
