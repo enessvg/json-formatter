@@ -1,11 +1,11 @@
 {
   "EXTENSION_NAME": {
     "description": "The name of the extension",
-    "message": "JSON Formatter"
+    "message": "JSON Formatter - Enes"
   },
   "EXTENSION_SHORT_NAME": {
     "description": "Extension name to be used when space is limited to ~12 characters",
-    "message": "JSON Formatter"
+    "message": "JF - Enes"
   },
   "EXTENSION_DESCRIPTION": {
     "message": "Makes JSON easy to read and explore"

@@ -51,6 +51,20 @@ export const build = singleFile(async () => {
       tsconfig: 'tsconfig.json',
     }
 
+    // Copy static files before bundling so `cp` and the parallel Bun builds do
+    // not race to create the same output directories.
+    await cp(extPath, tmpPath, {
+      recursive: true,
+      filter: (source) =>
+        !/\.tsx?$/.test(source) &&
+        (!source.endsWith('.css') ||
+          [
+            // 'content/style.css',
+            'options/options.css',
+            // 'global.css',
+          ].some((file) => source.endsWith(file))),
+    })
+
     await Promise.all([
       // Bundle TypeScript entrypoints into tmp
       Bun.build(buildOpts),
@@ -63,19 +77,6 @@ export const build = singleFile(async () => {
 
       // Generate .d.ts files for all modules
       $`./node_modules/.bin/tsc -p ./tsconfig.json --outDir tmp`,
-
-      // Copy other files over
-      cp(extPath, tmpPath, {
-        recursive: true,
-        filter: (source) =>
-          !/\.tsx?$/.test(source) &&
-          (!source.endsWith('.css') ||
-            [
-              // 'content/style.css',
-              'options/options.css',
-              // 'global.css',
-            ].some((file) => source.endsWith(file))),
-      }),
     ])
   }
 
