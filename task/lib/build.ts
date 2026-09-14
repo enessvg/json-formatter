@@ -208,15 +208,6 @@ export const build = singleFile(async () => {
     for await (const file of neededTmpFiles) copies.push(addfile(file))
 
     await Promise.all(copies)
-
-    // finally, modify manifest to highlight if this is a dev build
-    if (DEV) {
-      const distManifestFile = Bun.file(path.join(distPath, 'manifest.json'))
-      const manifest = await distManifestFile.json()
-      manifest.name = `🚧 ${manifest.name} 🚧`
-      manifest.version_name = `DEV.${(await $`bun run checksum`.text()).trim().substring(0, 8)}`
-      await distManifestFile.write(JSON.stringify(manifest, null, 2) + '\n')
-    }
   }
 
   // Report dist file sizes

@@ -8,9 +8,22 @@ const radioButtons = [
   ...document.querySelectorAll('input[name="theme"]'),
 ] as HTMLInputElement[]
 
+const viewModeRadioButtons = [
+  ...document.querySelectorAll('input[name="viewMode"]'),
+] as HTMLInputElement[]
+
 const getRadioButton = (value: string): HTMLInputElement => {
   const el = radioButtons.find((input) => input.value === value)
   if (!el) throw new Error(`Could not find radio button with value "${value}".`)
+  return el
+}
+
+const getViewModeRadioButton = (value: string): HTMLInputElement => {
+  const el = viewModeRadioButtons.find((input) => input.value === value)
+  if (!el)
+    throw new Error(
+      `Could not find view mode radio button with value "${value}".`,
+    )
   return el
 }
 
@@ -32,6 +45,7 @@ const updateFontSizeUi = (fontSize: number) => {
 
 prefStore.get().then((prefs) => {
   getRadioButton((prefs.themeOverride as string) || 'system').checked = true
+  getViewModeRadioButton(prefs.viewMode).checked = true
   updateFontSizeUi(prefs.fontSize)
 })
 
@@ -54,6 +68,14 @@ prefStore.get().then((prefs) => {
     })
   })
 
+  viewModeRadioButtons.forEach((input) => {
+    input.addEventListener('change', () => {
+      if (input.value === 'parsed' || input.value === 'raw') {
+        prefStore.set({ viewMode: input.value })
+      }
+    })
+  })
+
   fontSizeInput.addEventListener('input', () => {
     fontSizeValue.value = `${fontSizeInput.value} px`
   })
@@ -70,4 +92,7 @@ prefStore.onChange(({ newValue }) => {
     radioButton.checked = true
   }
   if (newValue?.fontSize) updateFontSizeUi(newValue.fontSize)
+  if (newValue?.viewMode) {
+    getViewModeRadioButton(newValue.viewMode).checked = true
+  }
 })

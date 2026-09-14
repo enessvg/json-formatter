@@ -5,6 +5,8 @@ var __jf_pre
 
 // All option names - TODO add dynamically from preferenceKeys
 Object.prototype.themeOverride
+Object.prototype.fontSize
+Object.prototype.viewMode
 
 // Storage keys
 Object.prototype.responseCache

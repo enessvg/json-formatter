@@ -7,7 +7,13 @@ import { logGlobal, logLocal } from '../lib/logging/logging'
 import { whenDomLoaded } from './lib/whenDomLoaded'
 import { sendMessage } from '../lib/messaging/messaging'
 import type { MessageProtocol } from '../lib/messaging/protocol'
-import { DEFAULT_FONT_SIZE, prefStore } from '../lib/preferences/preferences'
+import {
+  DEFAULT_FONT_SIZE,
+  MAX_FONT_SIZE,
+  MIN_FONT_SIZE,
+  prefStore,
+  type UserPreferences,
+} from '../lib/preferences/preferences'
 // @ts-expect-error
 import css from './style.css' with { type: 'text' }
 // @ts-expect-error
@@ -16,30 +22,16 @@ import { MAX_LENGTH } from '../lib/config.browser'
 
 const initialPrefsPromise = prefStore.get()
 
-const cssPromise = new Promise<string>(async (resolve) => {
-  try {
-    const prefs = await initialPrefsPromise
-
-    switch (prefs.themeOverride) {
-      case 'force_light':
-        resolve(css)
-        return
-      case 'force_dark':
-        resolve(`${css}\n\n${darkThemeCss}`)
-        return
-      default:
-    }
-
-    resolve(
-      `${css}\n\n@media (prefers-color-scheme: dark) {\n${darkThemeCss}\n}`,
-    )
-    return
-  } catch (error) {
-    logGlobal('ERROR', error)
+const getThemeCss = (theme: UserPreferences['themeOverride']) => {
+  switch (theme) {
+    case 'force_light':
+      return ''
+    case 'force_dark':
+      return darkThemeCss
+    case 'system':
+      return `@media (prefers-color-scheme: dark) {\n${darkThemeCss}\n}`
   }
-
-  resolve(`${css}\n\n@media (prefers-color-scheme: dark) {\n${darkThemeCss}\n}`)
-})
+}
 
 const renderPromise = (async (): Promise<
   | {
@@ -139,7 +131,6 @@ const renderPromise = (async (): Promise<
     document.body.appendChild(parsedJsonContainer)
 
     const rawJsonContainer = document.createElement('div')
-    rawJsonContainer.hidden = true
     rawJsonContainer.id = 'jsonFormatterRaw'
     rawJsonContainer.append(originalPreElement)
     document.body.appendChild(rawJsonContainer)
@@ -150,11 +141,26 @@ const renderPromise = (async (): Promise<
       rawJsonContainer.style.fontSize = value
     }
 
+    let initialPrefs: UserPreferences
     try {
-      applyFontSize((await initialPrefsPromise).fontSize)
-    } catch {
-      applyFontSize(DEFAULT_FONT_SIZE)
+      initialPrefs = await initialPrefsPromise
+    } catch (error) {
+      logGlobal('Could not load preferences', error)
+      initialPrefs = {
+        fontSize: DEFAULT_FONT_SIZE,
+        themeOverride: 'system',
+        viewMode: 'parsed',
+      }
     }
+
+    const applyViewMode = (viewMode: UserPreferences['viewMode']) => {
+      const rawSelected = viewMode === 'raw'
+      rawJsonContainer.hidden = !rawSelected
+      parsedJsonContainer.hidden = rawSelected
+    }
+
+    applyFontSize(initialPrefs.fontSize)
+    applyViewMode(initialPrefs.viewMode)
 
     // Status: it is a valid JSON object or array, and we have parsed the whole thing.
     // Flesh out the UI and handle events
@@ -162,72 +168,176 @@ const renderPromise = (async (): Promise<
       // Insert CSS
       const jfStyleEl = document.createElement('style')
       jfStyleEl.id = 'jfStyleEl'
-      //jfStyleEl.innerText = 'body{padding:0;}' ;
-      jfStyleEl.insertAdjacentHTML('beforeend', await cssPromise)
+      jfStyleEl.textContent = css
       document.head.appendChild(jfStyleEl)
 
-      prefStore.onChange(({ newValue }) => {
-        if (newValue) applyFontSize(newValue.fontSize)
-      })
+      const jfThemeStyleEl = document.createElement('style')
+      jfThemeStyleEl.id = 'jfThemeStyleEl'
+      document.head.appendChild(jfThemeStyleEl)
+
+      const applyTheme = (theme: UserPreferences['themeOverride']) => {
+        jfThemeStyleEl.textContent = getThemeCss(theme)
+      }
+
+      applyTheme(initialPrefs.themeOverride)
 
       document.head.insertAdjacentHTML(
         'afterbegin',
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
       )
 
-      // Create toggle buttons
-      const optionBar = document.createElement('div')
-      optionBar.id = 'optionBar'
+      const settingsButton = document.createElement('button')
+      settingsButton.id = 'settingsButton'
+      settingsButton.type = 'button'
+      settingsButton.textContent = '\u2699'
+      settingsButton.title = 'JSON Formatter settings'
+      settingsButton.setAttribute('aria-label', 'Open JSON Formatter settings')
 
-      const buttonPlain = document.createElement('button')
-      const buttonPlainSpan = document.createElement('span')
-      const buttonFormatted = document.createElement('button')
-      const buttonFormattedSpan = document.createElement('span')
-      buttonPlain.appendChild(buttonPlainSpan)
-      buttonFormatted.appendChild(buttonFormattedSpan)
+      const settingsDialog = document.createElement('dialog')
+      settingsDialog.id = 'settingsDialog'
+      settingsDialog.setAttribute('aria-labelledby', 'settingsTitle')
 
-      buttonPlain.id = 'buttonPlain'
-      buttonPlainSpan.innerText = 'Raw'
-      buttonFormatted.id = 'buttonFormatted'
-      buttonFormattedSpan.innerText = 'Parsed'
-      buttonFormatted.classList.add('selected')
+      const settingsHeader = document.createElement('div')
+      settingsHeader.className = 'settingsHeader'
 
-      // Handle toggle button events
-      let plainOn = false
-      buttonPlain.addEventListener(
-        'mousedown',
-        () => {
-          if (!plainOn) {
-            plainOn = true
-            rawJsonContainer.hidden = false
-            parsedJsonContainer.hidden = true
+      const settingsTitle = document.createElement('h2')
+      settingsTitle.id = 'settingsTitle'
+      settingsTitle.textContent = 'JSON Formatter settings'
 
-            buttonFormatted.classList.remove('selected')
-            buttonPlain.classList.add('selected')
-          }
+      const closeButton = document.createElement('button')
+      closeButton.className = 'settingsClose'
+      closeButton.type = 'button'
+      closeButton.textContent = '\u00d7'
+      closeButton.setAttribute('aria-label', 'Close settings')
+
+      settingsHeader.append(settingsTitle, closeButton)
+      settingsDialog.append(settingsHeader)
+
+      const createRadioGroup = <T extends string>(
+        legendText: string,
+        name: string,
+        options: Array<{ label: string; value: T }>,
+        selectedValue: T,
+        onChange: (value: T) => void,
+      ) => {
+        const fieldset = document.createElement('fieldset')
+        const legend = document.createElement('legend')
+        legend.textContent = legendText
+        fieldset.appendChild(legend)
+
+        for (const option of options) {
+          const label = document.createElement('label')
+          const input = document.createElement('input')
+          input.type = 'radio'
+          input.name = name
+          input.value = option.value
+          input.checked = option.value === selectedValue
+          input.addEventListener('change', () => {
+            if (input.checked) onChange(option.value)
+          })
+          label.append(input, option.label)
+          fieldset.appendChild(label)
+        }
+
+        return fieldset
+      }
+
+      const savePreferences = (updates: Partial<UserPreferences>) => {
+        void prefStore.set(updates).catch((error) => {
+          logGlobal('Could not save preferences', error)
+        })
+      }
+
+      const viewFieldset = createRadioGroup(
+        'View',
+        'jfViewMode',
+        [
+          { label: 'Parsed', value: 'parsed' },
+          { label: 'Raw', value: 'raw' },
+        ],
+        initialPrefs.viewMode,
+        (viewMode) => {
+          applyViewMode(viewMode)
+          savePreferences({ viewMode })
         },
-        false,
       )
 
-      buttonFormatted.addEventListener(
-        'mousedown',
-        function () {
-          if (plainOn) {
-            plainOn = false
-            rawJsonContainer.hidden = true
-            parsedJsonContainer.hidden = false
-
-            buttonFormatted.classList.add('selected')
-            buttonPlain.classList.remove('selected')
-          }
+      const themeFieldset = createRadioGroup(
+        'Theme',
+        'jfTheme',
+        [
+          { label: 'Automatic', value: 'system' },
+          { label: 'Dark', value: 'force_dark' },
+          { label: 'Light', value: 'force_light' },
+        ],
+        initialPrefs.themeOverride,
+        (themeOverride) => {
+          applyTheme(themeOverride)
+          savePreferences({ themeOverride })
         },
-        false,
       )
 
-      optionBar.appendChild(buttonPlain)
-      optionBar.appendChild(buttonFormatted)
+      const fontFieldset = document.createElement('fieldset')
+      const fontLegend = document.createElement('legend')
+      fontLegend.textContent = 'JSON font size'
+      const fontLabel = document.createElement('label')
+      fontLabel.className = 'fontSizeControl'
+      const fontSizeInput = document.createElement('input')
+      fontSizeInput.type = 'range'
+      fontSizeInput.min = String(MIN_FONT_SIZE)
+      fontSizeInput.max = String(MAX_FONT_SIZE)
+      fontSizeInput.step = '1'
+      fontSizeInput.value = String(initialPrefs.fontSize)
+      const fontSizeValue = document.createElement('output')
+      fontSizeValue.value = `${initialPrefs.fontSize} px`
+      fontSizeInput.addEventListener('input', () => {
+        const fontSize = Number(fontSizeInput.value)
+        fontSizeValue.value = `${fontSize} px`
+        applyFontSize(fontSize)
+      })
+      fontSizeInput.addEventListener('change', () => {
+        savePreferences({ fontSize: Number(fontSizeInput.value) })
+      })
+      fontLabel.append(fontSizeInput, fontSizeValue)
+      fontFieldset.append(fontLegend, fontLabel)
 
-      document.body.prepend(optionBar)
+      settingsDialog.append(viewFieldset, themeFieldset, fontFieldset)
+
+      settingsButton.addEventListener('click', () => settingsDialog.showModal())
+      closeButton.addEventListener('click', () => settingsDialog.close())
+      settingsDialog.addEventListener('click', (event) => {
+        if (event.target !== settingsDialog) return
+
+        const bounds = settingsDialog.getBoundingClientRect()
+        const clickedBackdrop =
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+
+        if (clickedBackdrop) settingsDialog.close()
+      })
+
+      document.body.prepend(settingsButton, settingsDialog)
+
+      prefStore.onChange(({ newValue }) => {
+        if (!newValue) return
+
+        applyFontSize(newValue.fontSize)
+        applyTheme(newValue.themeOverride)
+        applyViewMode(newValue.viewMode)
+
+        fontSizeInput.value = String(newValue.fontSize)
+        fontSizeValue.value = `${newValue.fontSize} px`
+
+        for (const input of settingsDialog.querySelectorAll<HTMLInputElement>(
+          'input[type="radio"]',
+        )) {
+          input.checked =
+            input.value === newValue.themeOverride ||
+            input.value === newValue.viewMode
+        }
+      })
 
       // Attach document-wide listener
       document.addEventListener('mousedown', generalClick)

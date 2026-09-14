@@ -5,6 +5,7 @@ import {
 } from '../PreferenceManager'
 
 type ThemeOverride = 'system' | 'force_dark' | 'force_light'
+type ViewMode = 'parsed' | 'raw'
 
 export const DEFAULT_FONT_SIZE = 13
 export const MIN_FONT_SIZE = 8
@@ -28,6 +29,9 @@ export const UserPreferences = {
       value >= MIN_FONT_SIZE &&
       value <= MAX_FONT_SIZE
     )
+  }),
+  viewMode: defineSetting<ViewMode>('parsed', (value) => {
+    return value === 'parsed' || value === 'raw'
   }),
 }
 

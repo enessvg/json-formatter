@@ -9,11 +9,26 @@ a:active {
   color: #ffe09a;
 }
 
-#optionBar {
-  -webkit-font-smoothing: subpixel-antialiased;
+#settingsButton {
+  background: #ddd;
+  color: #111;
+}
 
-  background: #2c2c2c;
-  box-shadow: 0px 0px 3px 3px #2c2c2c;
+#settingsDialog {
+  border-color: #505050;
+  background: #343434;
+  color: #eee;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.55);
+}
+
+#settingsDialog .settingsHeader,
+#settingsDialog fieldset {
+  border-color: #505050;
+}
+
+#settingsDialog .settingsClose:hover,
+#settingsDialog .settingsClose:focus-visible {
+  background: #4b4b4b;
 }
 
 #jsonFormatterParsed {
@@ -58,24 +73,4 @@ a:active {
 
 .collapsed:after {
   color: #8a8a8a;
-}
-
-:is(#buttonPlain, #buttonFormatted) {
-  text-shadow: none;
-  border: 0;
-  background: #9ddfe9;
-  box-shadow: none;
-  color: #000;
-}
-
-:is(#buttonPlain, #buttonFormatted):not(.selected):hover {
-  box-shadow: none;
-  background: #b9edf5;
-  color: #000;
-}
-
-:is(#buttonPlain, #buttonFormatted).selected {
-  box-shadow: inset 0px 1px 5px rgba(0, 0, 0, 0.7);
-  background: #82c9d4;
-  color: #000;
 }
