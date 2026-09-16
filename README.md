@@ -11,12 +11,13 @@ Chrome extension that helps you view and explore JSON API responses.
 - Clickable URLs
 - Negligible performance impact on non-JSON pages (less than 1 millisecond)
 - Works on any valid JSON page – URL doesn't matter
-- Buttons for toggling between raw and parsed JSON
+- In-page settings for switching between raw and parsed JSON, changing the
+  theme, and adjusting the font size
 - Parsed JSON is exported as a global variable, `json`, so you can inspect it in the console (now working again!)
 
 ## Installation
 
-**Option 1** – Install [JSON Formatter](https://chromewebstore.google.com/detail/json-formatter/bcjindcccaagfpapjjmafapmmgkkhgoa) from the Chrome Web Store.
+**Option 1** – Install the [original JSON Formatter extension](https://chromewebstore.google.com/detail/json-formatter/bcjindcccaagfpapjjmafapmmgkkhgoa) from the Chrome Web Store.
 
 **Option 2** – Install it from source (see below).
 
@@ -57,6 +58,18 @@ Historically, the JavaScript standard explicitly stated that object keys can be 
 
 ##### But I just want to see exactly what the server spits out
 
-For now, your best option is to just use the "Raw" button to see the raw JSON. This is what the server sent. The "Parsed" buttons represents what you'll get from `JSON.parse`.
+Use the in-page settings button to select the Raw view. This is what the server
+sent. The Parsed view represents what you'll get from `JSON.parse`.
 
 In future JSON Formatter might switch from using `JSON.parse` to a custom parser (if performance allows) in order to detect when a value has been 'changed' by parsing and show an appropriate warning.
+
+## License and attribution
+
+This project is a modified version of JSON Formatter by Callum Locke. It is
+independently maintained and is not endorsed by the original author or
+contributors.
+
+The original work and this modified version are distributed under the
+[BSD 3-Clause License](LICENSE). The original copyright notice, license terms,
+and warranty disclaimer are retained in that file. The build also copies the
+license into `dist` so it accompanies packaged extension distributions.

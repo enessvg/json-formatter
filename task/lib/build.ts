@@ -208,6 +208,9 @@ export const build = singleFile(async () => {
     for await (const file of neededTmpFiles) copies.push(addfile(file))
 
     await Promise.all(copies)
+
+    // The BSD 3-Clause license must accompany binary distributions too.
+    await cp(path.join(repoRoot, 'LICENSE'), path.join(distPath, 'LICENSE'))
   }
 
   // Report dist file sizes
