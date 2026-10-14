@@ -18,7 +18,7 @@ import {
 import css from './style.css' with { type: 'text' }
 // @ts-expect-error
 import darkThemeCss from './styleDark.css' with { type: 'text' }
-import { MAX_LENGTH } from '../lib/config.browser'
+import { MAX_LENGTH, PERFMARKS } from '../lib/config.browser'
 
 const initialPrefsPromise = prefStore.get()
 
