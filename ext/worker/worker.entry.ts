@@ -44,16 +44,36 @@ if (true) {
 
   browser.webRequest.onHeadersReceived.addListener(
     (details) => {
+      const contentType = details.responseHeaders
+        ?.find(({ name }) => name.toLowerCase() === 'content-type')
+        ?.value?.split(';')[0]
+        ?.trim()
+        .toLowerCase()
+
+      // HTML pages never request formatter metadata. Avoid queueing storage
+      // reads and writes for every navigation and rapid reload on those pages.
+      if (
+        contentType &&
+        ['text/html', 'application/html', 'application/xhtml+xml'].includes(
+          contentType,
+        )
+      )
+        return
+
       const headers: Array<[string, string]> = []
 
-      for (const { name, value } of details.responseHeaders!) {
+      for (const { name, value } of details.responseHeaders ?? []) {
         if (!value) continue
         headers.push([name, value])
       }
 
       const { statusCode, statusLine } = details
 
-      addResponseInfoToCache(details.tabId, { headers, statusLine, statusCode })
+      void addResponseInfoToCache(details.tabId, {
+        headers,
+        statusLine,
+        statusCode,
+      }).catch((error) => logLocal('Could not cache response headers', error))
 
       return undefined
     },

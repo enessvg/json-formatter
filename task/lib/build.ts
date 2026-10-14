@@ -105,6 +105,11 @@ export const build = singleFile(async () => {
               if (PERFMARKS)
                 code = `performance.mark('SCRIPT_PARSE_START'); ${code}\nperformance.mark('SCRIPT_PARSE_END');`
 
+              // Guard the entire bundle, including imported modules: normal
+              // pages must not initialise storage or modify the MAIN world.
+              if (jfContext.startsWith('content/'))
+                code = `(() => { if (['text/html', 'application/html', 'application/xhtml+xml'].includes(document.contentType)) return; ${code}\n})();`
+
               await Bun.write(filePath, code)
             })(),
           )
